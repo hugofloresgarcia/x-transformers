@@ -665,7 +665,8 @@ class Attention(nn.Module):
         tensor_product = False,      # https://arxiv.org/abs/2208.06061
         add_zero_kv = False,         # same as add_zero_attn in pytorch
         rotary_embed_values = False,
-        onnxable = False
+        onnxable = False, 
+        lora_r=8,
     ):
         super().__init__()
         self.scale = dim_head ** -0.5
@@ -689,12 +690,14 @@ class Attention(nn.Module):
         v_dim = value_dim_head * kv_heads
         out_dim = value_dim_head * heads
 
-        self.to_q = nn.Linear(dim, q_dim, bias = False)
+        import loralib as lora
+
+        self.to_q = lora.Linear(dim, q_dim, bias = False)
         self.to_k = nn.Linear(dim, k_dim, bias = False)
 
         # shared key / values, for further memory savings during inference
         assert not (shared_kv and value_dim_head != dim_head), 'key and value head dimensions must be equal for shared key / values'
-        self.to_v = nn.Linear(dim, v_dim, bias = False) if not shared_kv else None
+        self.to_v = lora.Linear(dim, v_dim, bias = False) if not shared_kv else None
 
         # relations projection from tp-attention
         self.to_r = nn.Linear(dim, v_dim, bias = False) if tensor_product else None
@@ -760,7 +763,10 @@ class Attention(nn.Module):
 
         # attention on attention
         self.attn_on_attn = on_attn
-        self.to_out = nn.Sequential(nn.Linear(out_dim, dim * 2, bias = False), nn.GLU()) if on_attn else nn.Linear(out_dim, dim, bias = False)
+        self.to_out = nn.Sequential(
+            lora.Linear(out_dim, dim * 2, bias = False), 
+            nn.GLU()
+        ) if on_attn else lora.Linear(out_dim, dim, bias = False)
 
         # whether to rotate positions into values, for absolute positions in addition to relative
         self.rotary_embed_values = rotary_embed_values
