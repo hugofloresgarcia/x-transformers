@@ -692,12 +692,12 @@ class Attention(nn.Module):
 
         import loralib as lora
 
-        self.to_q = lora.Linear(dim, q_dim, bias = False)
+        self.to_q = lora.Linear(dim, q_dim, bias = False, r=lora_r)
         self.to_k = nn.Linear(dim, k_dim, bias = False)
 
         # shared key / values, for further memory savings during inference
         assert not (shared_kv and value_dim_head != dim_head), 'key and value head dimensions must be equal for shared key / values'
-        self.to_v = lora.Linear(dim, v_dim, bias = False) if not shared_kv else None
+        self.to_v = lora.Linear(dim, v_dim, bias = False, r=lora_r) if not shared_kv else None
 
         # relations projection from tp-attention
         self.to_r = nn.Linear(dim, v_dim, bias = False) if tensor_product else None
