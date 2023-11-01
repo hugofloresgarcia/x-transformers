@@ -1317,7 +1317,7 @@ loss.backward()
 
 ## Miscellaneous
 
-Cross Attention
+### Cross Attention
 
 ```python
 import torch
@@ -1337,7 +1337,7 @@ model(nodes, context = encoded_neighbors, mask = node_masks, context_mask = neig
 
 ```
 
-Pass in continuous values
+### Continuous Embeddings
 
 ```python
 import torch
@@ -1395,6 +1395,61 @@ loss.backward
 
 start_emb = torch.randn(1, 777)
 generated = model.generate(start_emb, 17) # (17, 777)
+```
+
+### xVal - Continuous and Discrete
+
+<img src="./images/xval.png" width="400px"></img>
+
+This is promising work that resulted from the collaboration across many institutes (collectively known as Polymathic AI). They found that by offering a continuously scaled number token to the transformer, the transformer was able to generalize arithmetic and forecasting tasks better than the alternative encoding schemes.
+
+This is corroborated by some [prior work](https://github.com/lucidrains/tab-transformer-pytorch#ft-transformer)
+
+```python
+import torch
+
+from x_transformers import (
+    Decoder,
+    XValTransformerWrapper,
+    XValAutoregressiveWrapper
+)
+
+model = XValTransformerWrapper(
+    num_tokens = 4,
+    numerical_token_id = 3,
+    max_seq_len = 1024,
+    attn_layers = Decoder(
+        dim = 512,
+        depth = 12,
+        heads = 8
+    )
+)
+
+# wrap it with the xval autoregressive wrapper
+
+model = XValAutoregressiveWrapper(model)
+
+# mock data
+
+ids = torch.randint(0, 4, (1, 777))
+nums = torch.randn(1, 777)
+mask = torch.ones(1, 777).bool()
+
+# train on a lot of data above
+
+loss = model(ids, nums, mask = mask)
+loss.backward()
+
+# then generate
+
+start_ids = torch.randint(0, 4, (1, 1))
+start_nums = torch.randn(1, 1)
+
+ids_out, num_out, is_number_mask = model.generate(start_ids, start_nums, 17)
+
+# (1, 17), (1, 17), (1, 17)
+
+# discrete, continuous, mask for discrete / continuous
 ```
 
 ## Citations
@@ -2005,6 +2060,15 @@ generated = model.generate(start_emb, 17) # (17, 777)
     year    = {2023},
     volume  = {abs/2306.12929},
     url     = {https://api.semanticscholar.org/CorpusID:259224568}
+}
+```
+
+```bibtex
+@inproceedings{Golkar2023xValAC,
+    title   = {xVal: A Continuous Number Encoding for Large Language Models},
+    author  = {Siavash Golkar and Mariel Pettee and Michael Eickenberg and Alberto Bietti and M. Cranmer and G{\'e}raud Krawezik and Francois Lanusse and Michael McCabe and Ruben Ohana and Liam Parker and Bruno R{\'e}galdo-Saint Blancard and Tiberiu Teşileanu and Kyunghyun Cho and Shirley Ho},
+    year    = {2023},
+    url     = {https://api.semanticscholar.org/CorpusID:263622222}
 }
 ```
 
